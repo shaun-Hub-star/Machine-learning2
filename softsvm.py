@@ -28,9 +28,7 @@ def softsvm(l, trainX: np.array, trainy: np.array):
     u_right = (1 / m) * np.ones(m)
     u = matrix(np.concatenate((u_left, u_right)))
 
-    # v_up = np.zeros((1, m))
-    # v_down = np.ones((1, m))
-    # v = matrix(np.concatenate((v_up, v_down), axis=1))
+
     v_up = np.zeros((m, 1))
     v_down = np.ones((m, 1))
 
@@ -39,17 +37,6 @@ def softsvm(l, trainX: np.array, trainy: np.array):
     A_topRight = np.identity(m)
     A_downRight = np.identity(m)
     A_right = np.concatenate((A_topRight, A_downRight), axis=0)
-
-    # def sum_of_element_in_diagonal(j):
-    #     summation = 0
-    #     for index in range(m):
-    #         summation += trainy[index] * trainX[index][j]
-    #     return summation
-    #
-    # diagonal_down_left = [sum_of_element_in_diagonal(j) for j in range(d)]
-    # A_down_left = np.zeros((d, m))
-    # for i in range(len(diagonal_down_left)):
-    #     A_down_left[i][i] = diagonal_down_left[i]
     A_downLeft = np.array([np.array([trainy[i] * trainX[i][j] for j in range(d)]) for i in range(m)])
     A_left = np.concatenate((A_topLeft, A_downLeft), axis=0)
     A = np.concatenate((A_left, A_right), axis=1)
@@ -186,9 +173,6 @@ def runtask2():
     fig.savefig("2b.png")
 
 
-def retGramMatrix(v1, v2, k):
-    polyKernel = lambda vi, vj: (1 + np.inner(vi, vj)) ** k
-    return np.array([polyKernel(v1[i], v2[j]) for i in range(len(v1))] for j in range(len(v2)))
 
 
 if __name__ == '__main__':
