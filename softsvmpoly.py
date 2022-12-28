@@ -112,6 +112,118 @@ def simple_test():
     # print(np.mean(predicty != _testY))
 
 
+def paintPoints(trainX, trainY):
+    colorsMap = {1: 'red', -1: 'blue'}
+    fig, ax = plt.subplots(1, 1)
+    x = [trainX[i][0] for i in range(len(trainX))]
+    y = [trainX[i][1] for i in range(len(trainX))]
+    colors = [colorsMap[trainY[i]] for i in range(len(trainY))]
+    ax.scatter(x, y, c=colors)
+    ax.set_title("Global")
+    ax.set_xlabel("number tweets")
+    ax.set_ylabel("mean engagement")
+    fig = ax.get_figure()
+    fig.savefig("4a.png")
+
+
+def err(h_i, V, k, S_tag_x):
+    _testY: np.array = np.array([y for _, y in V])
+    _testX = np.array([x for x, _ in V])
+    G = retGramMatrix(S_tag_x, _testX, k)
+    return np.sum(np.sign(np.dot(G, h_i)) != _testY.reshape(_testY.shape[0], 1)) / _testY.shape[0]
+
+
+def k_fold(A, S, number_of_folds, ks, lambdas):
+    n = len(S)
+    values = []
+    valueToParams = {}
+    for l in lambdas:
+        for k in ks:
+            epsilons = []
+            for i in range(number_of_folds):
+                start = (n // number_of_folds) * i
+                end = start + (n // number_of_folds)
+                V = S[start:end]
+                part1 = np.array(S[:start])
+                part2 = np.array(S[end:])
+                if len(part1) == 0:
+                    S_tag = part2
+                elif len(part2) == 0:
+                    S_tag = part1
+                else:
+                    S_tag = np.concatenate((part1, part2))
+                S_tag_x = [x for x, _ in S_tag]
+                S_tag_y = [y for _, y in S_tag]
+                h_i = A(l, k, S_tag_x, S_tag_y)
+                epsilon_i = err(h_i, V, k, S_tag_x)
+                epsilons.append(epsilon_i)
+            epsilon_parm = np.sum(epsilons) / len(epsilons)
+            values.append((epsilon_parm, (l, k)))
+            valueToParams[epsilon_parm] = (l, k)
+    minParam = min(valueToParams.keys())
+    l, k = valueToParams[minParam]
+    return A(l, k, [x for x, _ in S], [y for _, y in S]), k, valueToParams, values
+
+
+def k_fold_non_kernel(A, S, number_of_folds, lambdas):
+    n = len(S)
+
+    valueToParams = {}
+    for l in lambdas:
+        epsilons = []
+        for i in range(number_of_folds):
+            start = (n // number_of_folds) * i
+            end = start + (n // number_of_folds)
+            V = S[start:end]
+            part1 = np.array(S[:start])
+            part2 = np.array(S[end:])
+            if len(part1) == 0:
+                S_tag = part2
+            elif len(part2) == 0:
+                S_tag = part1
+            else:
+                S_tag = np.concatenate((part1, part2))
+            S_tag_x = [x for x, _ in S_tag]
+            S_tag_y = [y for _, y in S_tag]
+            h_i = A(l, S_tag_x, S_tag_y)
+            epsilon_i = err_soft(h_i, V)
+            epsilons.append(epsilon_i)
+        epsilon_parm = np.sum(epsilons) / len(epsilons)
+        if epsilon_parm in valueToParams.keys():
+            valueToParams[epsilon_parm + np.random.random() / 10000000] = l
+        else:
+            valueToParams[epsilon_parm] = l
+
+    minParam = min(valueToParams.keys())
+    l = valueToParams[minParam]
+    return A(l, [x for x, _ in S], [y for _, y in S]), valueToParams
+
+
+def err_soft(h_i, V):
+    testX = np.array([x for x, _ in V])
+    testy = np.array([y for _, y in V])
+    predicty = np.array([1.0 if np.sign(testX[i] @ h_i)[0] == 1.0 else -1.0 for i in range(testX.shape[0])])
+    return np.mean(predicty != testy)
+
+
+def printErrors(valueToParams: {}, values):
+    minParam = min(valueToParams.keys())
+    l, k = valueToParams[minParam]
+    data = []
+    print(f"The hyper parameters with the lowest error are: lambda = {l}, k = {k} ")
+    l = [l[0] for _, l in values]
+    l = list(dict.fromkeys(l))
+    k = [k[1] for _, k in values]
+    k = list(dict.fromkeys(k))
+    for key, value in values:
+        # print(f"For lambda: {value[0]} and k: {value[1]} the average error is: {key}")
+        data.append(key)
+    data = np.array(data, dtype=object).reshape((3, 3))
+
+    df = pd.DataFrame(data, index=l, columns=k)
+    print(df)
+
+
 if __name__ == '__main__':
     # before submitting, make sure that the function simple_test runs without errors
     simple_test()
