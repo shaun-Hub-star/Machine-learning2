@@ -17,7 +17,7 @@ def softsvm(l, trainX: np.array, trainy: np.array):
     """
     m = len(trainy)
     d = len(trainX[0])
-    l_identity = l * np.identity(d)
+    l_identity = 2*l * np.identity(d)
 
     HRight = np.zeros((d + m, m))
     zeroLeftCorner = np.zeros((m, d))
